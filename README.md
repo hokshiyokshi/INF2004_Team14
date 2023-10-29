@@ -28,10 +28,10 @@ Installation & Usage:
 tbc
 
 Team Members:
-Awil Alessandra Antoinette Javier
-Sim Xin Rong
-Ryan Raidley Yiap Chang Feng
-Denzel Low E Loong
+Awil Alessandra Antoinette Javier,
+Sim Xin Rong, 
+Ryan Raidley Yiap Chang Feng, 
+Denzel Low E Loong, 
 Muhammad Hidayah Bin Mohd Latif
 
 Acknowledgments:
