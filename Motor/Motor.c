@@ -70,6 +70,7 @@ int pin5 = 5;
 
     //i.e, turn on the spot clockwise
     void pivotSteerRight(){
+        printf("test");
         //Rotate the left wheel forward
         gpio_put(pin1, 0);
         gpio_put(pin2, 1);
@@ -82,6 +83,10 @@ int pin5 = 5;
 
 int main() {
 
+    //initialization for USB cable (To print output)
+    stdio_init_all();
+    
+    
     // Tell GPIO 0 they are allocated to the PWM
     gpio_set_function(0, GPIO_FUNC_PWM);
     // Tell GPIO and 6 they are allocated to the PWM
@@ -128,18 +133,16 @@ int main() {
  
 
     while (1){
-    pwm_set_chan_level(slice_num_motor1, PWM_CHAN_A, quarterPower);
+    pwm_set_chan_level(slice_num_motor1, PWM_CHAN_A, halfPower);
     // Motor 2 (RHS)
-    pwm_set_chan_level(slice_num_motor2, PWM_CHAN_A, quarterPower);     
+    pwm_set_chan_level(slice_num_motor2, PWM_CHAN_A, halfPower);     
     moveForward();
     //Note: DO NOT USE SLEEP in the final version. Use VtaskDelay as sleep blocks all
     //other tasks from executing
     sleep_ms(2000);
 
 
-    pwm_set_chan_level(slice_num_motor1, PWM_CHAN_A, halfPower);
     // Motor 2 (RHS)
-    pwm_set_chan_level(slice_num_motor2, PWM_CHAN_A, halfPower); 
     moveBackward();
     sleep_ms(2000);
     
