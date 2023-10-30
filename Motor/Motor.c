@@ -3,6 +3,7 @@
 #include "stdio.h"
 
 //Pass the integers to the motors as a variable instead of a value
+//Removes guesswork for powering up of motors.
 int quarterPower = 3125;
 int halfPower = 6250;
 int fullPower = 12500; 
@@ -16,7 +17,16 @@ int pin2 = 2;
 int pin4 = 4;
 int pin5 = 5;
 
-    
+    //Function to control the power of the motors.
+    //Use together with variables in order to provide appropriate power.
+    void motorPower(int power){
+        //GPIO pins initialized directly, not as variables.
+        //motor 1
+        pwm_set_chan_level(pwm_gpio_to_slice_num(0), PWM_CHAN_A, power);
+        // Motor 2 (RHS)
+        pwm_set_chan_level(pwm_gpio_to_slice_num(6), PWM_CHAN_A, power); 
+    }
+
     //logic 0 = no power (Low), logic 1 = power (high)
     void moveForward(){
         //Forward for LHS gearbox
@@ -105,7 +115,7 @@ int main() {
 
     //NOTE: POV IS LOOKING AT L298N WITH BLACK HEATSINK FACING YOU, BLUE BITS FACING AWAY
     // 0 is the motor for the LHS
-    // 3 is the motor for RHS.
+    // 6 is the motor for RHS.
     uint slice_num_motor1 = pwm_gpio_to_slice_num(0);
     uint slice_num_motor2 = pwm_gpio_to_slice_num(6);
 
@@ -119,29 +129,20 @@ int main() {
     //Corresponds to a period of 10ms (12,500/1,250,000 = 0.01s or 10ms)
     pwm_set_wrap(slice_num_motor1, 12500);
     pwm_set_wrap(slice_num_motor2, 12500);
-    
 
-    // // Set the duty cycle for both motors
-    // // Motor 1 (LHS) 
-    // pwm_set_chan_level(slice_num_motor1, PWM_CHAN_A, 6250);
-    // // Motor 2 (RHS)
-    // pwm_set_chan_level(slice_num_motor2, PWM_CHAN_A, 6250); 
-
-    // Enable both PWM slices
+    // Enable both PWM slices 
     pwm_set_enabled(slice_num_motor1, true);
     pwm_set_enabled(slice_num_motor2, true);
  
 
     while (1){
-    pwm_set_chan_level(slice_num_motor1, PWM_CHAN_A, halfPower);
-    // Motor 2 (RHS)
-    pwm_set_chan_level(slice_num_motor2, PWM_CHAN_A, halfPower);     
+    motorPower(fullPower);
     moveForward();
     //Note: DO NOT USE SLEEP in the final version. Use VtaskDelay as sleep blocks all
     //other tasks from executing
     sleep_ms(2000);
 
-
+    motorPower(halfPower);
     // Motor 2 (RHS)
     moveBackward();
     sleep_ms(2000);
