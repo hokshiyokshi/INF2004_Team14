@@ -1,3 +1,9 @@
+
+//CONNECT TO PINS: (POV: MICRO USB ON TOP)
+//GND PIN: GND PIN ABOVE GP 17 (RIGHT HAND SIDE, #3 FROM THE BOTTOM)
+//VCC PIN: 3.3V OUT (RIGHT HAND SIDE, #5 FROM THE TOP)
+//OUT PIN: GP 2 ON PI (LEFT HAND SIDE, #4 FROM THE TOP)
+
 // remember to include these dependencies
 #include <stdio.h>
 #include <stdint.h>
@@ -33,6 +39,7 @@ void distanceTravelledLeft(){
     turnCountLeft += 1;
 
     //DEBUGGING ONLY
+    printf("\n right wheel time: %f", elapsedTimeLeft);
     printf("\n Left wheel Turns: %d", turnCountLeft);
     printf("\n Left wheel Distance: %.2f", distanceLeft);
     //DEBUGGING ONLY
@@ -66,6 +73,7 @@ void distanceTravelledRight(){
     turnCountRight += 1;
 
     //DEBUGGING ONLY
+    printf("\n right wheel time: %f", elapsedTimeRight);
     printf("\n Right wheel Turns: %d", turnCountRight);
     printf("\n Right wheel Distance: %.2f", distanceRight);
     //DEBUGGING ONLY
