@@ -19,68 +19,102 @@ int pin5 = 5;
 
     //Function to control the power of the motors.
     //Use together with variables in order to provide appropriate power.
-    void motorPower(int power){
+    //logic 0 = no power (Low), logic 1 = power (high)
+    void moveForward(int power, int duration){
         //GPIO pins initialized directly, not as variables.
-        //motor 1
+        //motor 1 (LHS)
         pwm_set_chan_level(pwm_gpio_to_slice_num(0), PWM_CHAN_A, power);
         // Motor 2 (RHS)
         pwm_set_chan_level(pwm_gpio_to_slice_num(6), PWM_CHAN_A, power); 
-    }
-
-    //logic 0 = no power (Low), logic 1 = power (high)
-    void moveForward(){
         //Forward for LHS gearbox
         gpio_put(pin1, 0);
         gpio_put(pin2, 1);
         //Forward for RHS gearbox
         gpio_put(pin4, 0);
         gpio_put(pin5, 1);
+
+        //Note: DO NOT USE SLEEP in the final version. Use VtaskDelay as sleep blocks all
+        //other tasks from executing
+
+        //sleep for designated time
+        sleep_ms(duration);
     }//for moveForward Function
 
-    void moveBackward(){
+    void moveBackward(int power, int duration){
+        //motor 1 (LHS)
+        pwm_set_chan_level(pwm_gpio_to_slice_num(0), PWM_CHAN_A, power);
+        // Motor 2 (RHS)
+        pwm_set_chan_level(pwm_gpio_to_slice_num(6), PWM_CHAN_A, power); 
         //Reverse for LHS gearbox
         gpio_put(pin1, 1);
         gpio_put(pin2, 0);
         //Reverse for RHS gearbox
         gpio_put(pin4, 1);
         gpio_put(pin5, 0);
+        //Note: DO NOT USE SLEEP in the final version. Use VtaskDelay as sleep blocks all
+        //other tasks from executing
+
+        //sleep for designated time
+        sleep_ms(duration);
     }//for moveBackward Function
 
     //Logic: "lock" the left wheel by setting the logic to "0"
     //Rotate the right wheel forward by setting the logic to pin4: 0, pin5: 1
-    void turnLeft(){
+    void turnLeft(int power, int duration){
+        //motor 1 (LHS)
+        pwm_set_chan_level(pwm_gpio_to_slice_num(0), PWM_CHAN_A, power);
+        // Motor 2 (RHS)
+        pwm_set_chan_level(pwm_gpio_to_slice_num(6), PWM_CHAN_A, power); 
         //"lock" the left wheel in place
         gpio_put(pin1, 0);
         gpio_put(pin2, 0);
         //Forward for RHS gearbox
         gpio_put(pin4, 0);
         gpio_put(pin5, 1);
+
+        //sleep for designated time
+        sleep_ms(duration);
     }//for turnLeft Function
 
-
-    void turnRight(){
+    void turnRight(int power, int duration){
+        //motor 1 (LHS)
+        pwm_set_chan_level(pwm_gpio_to_slice_num(0), PWM_CHAN_A, power);
+        // Motor 2 (RHS)
+        pwm_set_chan_level(pwm_gpio_to_slice_num(6), PWM_CHAN_A, power); 
         //Rotate the left wheel forward
         gpio_put(pin1, 0);
         gpio_put(pin2, 1);
         //"lock" the right wheel
         gpio_put(pin4, 0);
         gpio_put(pin5, 0);
+
+        //sleep for designated time
+        sleep_ms(duration);
     }//for turnRight Function
 
     //i.e, turn on the spot anticlockwise
-    void pivotSteerLeft(){
+    void pivotSteerLeft(int power, int duration){
+        //motor 1 (LHS)
+        pwm_set_chan_level(pwm_gpio_to_slice_num(0), PWM_CHAN_A, power);
+        // Motor 2 (RHS)
+        pwm_set_chan_level(pwm_gpio_to_slice_num(6), PWM_CHAN_A, power); 
         //Forward for RHS gearbox
         gpio_put(pin4, 0);
         gpio_put(pin5, 1);
         //Reverse for LHS gearbox
         gpio_put(pin1, 1);
         gpio_put(pin2, 0);
+
+        //sleep for designated time
+        sleep_ms(duration);
     }//for pivotSteerLeft function
 
-
     //i.e, turn on the spot clockwise
-    void pivotSteerRight(){
-        printf("test");
+    void pivotSteerRight(int power, int duration){
+        //motor 1 (LHS)
+        pwm_set_chan_level(pwm_gpio_to_slice_num(0), PWM_CHAN_A, power);
+        // Motor 2 (RHS)
+        pwm_set_chan_level(pwm_gpio_to_slice_num(6), PWM_CHAN_A, power); 
         //Rotate the left wheel forward
         gpio_put(pin1, 0);
         gpio_put(pin2, 1);
@@ -88,8 +122,9 @@ int pin5 = 5;
         gpio_put(pin4, 1);
         gpio_put(pin5, 0);
     
+        //sleep for designated time
+        sleep_ms(duration);
     }//for pivotSteerRight function
-
 
 int main() {
 
@@ -111,7 +146,6 @@ int main() {
     gpio_set_dir(pin2, GPIO_OUT);
     gpio_set_dir(pin4, GPIO_OUT);
     gpio_set_dir(pin5, GPIO_OUT);
-
 
     //NOTE: POV IS LOOKING AT L298N WITH BLACK HEATSINK FACING YOU, BLUE BITS FACING AWAY
     // 0 is the motor for the LHS
@@ -136,28 +170,18 @@ int main() {
  
 
     while (1){
-    motorPower(fullPower);
-    moveForward();
-    //Note: DO NOT USE SLEEP in the final version. Use VtaskDelay as sleep blocks all
-    //other tasks from executing
-    sleep_ms(2000);
+    moveForward(fullPower, 2000);
 
-    motorPower(halfPower);
-    // Motor 2 (RHS)
-    moveBackward();
-    sleep_ms(2000);
+
+    moveBackward(halfPower, 4000);
     
-    turnLeft();
-    sleep_ms(2000);
+    turnLeft(fullPower, 2000);
 
-    turnRight();
-    sleep_ms(2000);
+    turnRight(fullPower, 2000);
 
-    pivotSteerLeft();
-    sleep_ms(4000);
+    pivotSteerLeft(halfPower, 2000);
 
-    pivotSteerRight();
-    sleep_ms(4000);
+    pivotSteerRight(halfPower, 2000);
 
     }//while loop
 //DO NOT PUT ANYTHING HERE, DOES NOT RUN
