@@ -1,0 +1,533 @@
+//standard include statements
+#include <stdio.h>
+
+#include "pico/cyw43_arch.h"
+#include "pico/stdlib.h"
+
+#include "lwip/ip4_addr.h"
+
+#include "FreeRTOS.h"
+#include "task.h"
+#include "ping.h"
+#include "message_buffer.h"
+
+#include "hardware/gpio.h"
+#include "hardware/adc.h"
+#include "hardware/pwm.h"
+
+#define mbaTASK_MESSAGE_BUFFER_SIZE       ( 60 )
+
+#ifndef PING_ADDR
+#define PING_ADDR "142.251.35.196"
+#endif
+#ifndef RUN_FREERTOS_ON_CORE
+#define RUN_FREERTOS_ON_CORE 0
+#endif
+//Macro to define task priority
+#define TEST_TASK_PRIORITY				( tskIDLE_PRIORITY + 1UL )
+
+//DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS
+
+//ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED
+//Timer interval, timer will tick every 10^-5 seconds
+#define timerInterval 10    
+
+//isRunningLeft = To check the state of the timer, false = not running, true = running
+//startTimeLeft = Start time of the left encoder
+//elapsedTimeLeft = Time since start for the left encoder
+volatile bool isRunningLeft = false;
+volatile uint64_t startTimeLeft = 0;
+volatile uint64_t elapsedTimeLeft = 0;
+
+volatile bool isRunningRight = false;
+volatile uint64_t startTimeRight = 0;
+volatile uint64_t elapsedTimeRight = 0;
+
+// Function to start or stop the timer when the encoder = 1 or = 20
+void toggleTimeLeft(uint gpio, uint32_t events);
+void toggleTimeRight(uint gpio, uint32_t events);
+
+// Timer interrupt handler to update the elapsed time
+bool updateElapsedTimeLeft(repeating_timer_t *rt);
+bool updateElapsedTimeRight(repeating_timer_t *rt);
+//TIMER PORTION
+
+//Remember to declare during integration
+//GPIO pin 8 and 10 = set as power pin
+int pin8 = 8;
+int pin11 = 11;
+//GPIO pin 9 and 12 = set as Ground pin
+int groundPin9 = 9;
+int groundPin12 = 12;
+
+//testing
+//pin 7 is the left
+uint pin7 = 7;
+//pin 13 is the right
+uint pin13 = 13;
+
+float distanceLeft = 0.0;
+float distanceRight = 0.0;
+
+float speedLeft = 0.0;
+float speedRight = 0.0;
+//ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED
+
+
+
+//MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
+//Pass the integers to the motors as a variable instead of a value
+//Removes guesswork for powering up of motors.
+int fourtyFivePercentPower = 5625;
+int halfPower = 6250;
+int fullPower = 12500; 
+
+//Define pins to enable/disable power output, int corresponds to GPIO
+//pins 1 and 2 are used because pin 0 is already used for PWM
+int pin1 = 1;
+int pin2 = 2;
+//Pin 3 unused to preserve wire clarity during assembly
+//Pins 4 and 5 are used since pin 6 is already used for PWM
+int pin4 = 4;
+int pin5 = 5;
+//MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
+//DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS
+
+
+
+//LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
+//Left side (Will use board's ground pin)
+//Power pin
+int pin14 = 14;
+//Feedback pin
+int pin15 = 15;
+
+//Right side (Will use board's ground pin)
+//power pin
+int pin16 = 16;
+//feedback pin
+int pin17 = 17; 
+//LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
+
+
+
+//FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS 
+//ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED
+void distanceTravelled(uint gpio, uint32_t events) {
+
+    if(gpio==7){
+
+        //declared as static to retain its value 
+        static int turnCountLeft = 0;
+        //Radius of the wheel: ~30mm
+        //Circumference of the wheel = 2* pi * r = ~ 188.49 ~ 188.5mm
+        //188.5 / 20 (Wheel encoder has 20 slots) = 9.425mm per turn 
+        distanceLeft += 9.425;
+
+        turnCountLeft += 1;
+
+        //For timer: Only start the turncount when encoder registers 1 count
+        if (turnCountLeft == 1){
+            if (!isRunningLeft){
+                // Start the stopwatch if it's not running
+                startTimeLeft = time_us_64();
+                elapsedTimeLeft = 0;
+                isRunningLeft = true;
+                }//If stateemnt for checking state of timer
+        }//If statement for Overall Timer
+
+        //For when the turnCountLeft Reaches 20 to reset and stop the timer
+        else if (turnCountLeft == 20){
+            if (isRunningLeft)
+        {
+            // Stop the timer
+            elapsedTimeLeft = time_us_64() - startTimeLeft;
+            isRunningLeft = false;
+        }//if statement
+        else
+        {
+            // Reset the Timer 
+            elapsedTimeLeft = 0;
+        }//else statement
+        }//Else if for turnCountLeft ==20
+
+        // //DEBUGGING ONLY
+        // printf("\n Left wheel time: %lld",elapsedTimeLeft);
+        printf("\n Left wheel Turns: %d", turnCountLeft);
+        printf("\n Left wheel Distance: %.2f", distanceLeft);
+        // //DEBUGGING ONLY
+
+        if (turnCountLeft == 20){
+            //print up t 3 d.p
+            printf("\nLeft wheel Distance (Millimeters): %.3f", distanceLeft);
+
+            printf("\nElapsed time (left): %lld", (elapsedTimeLeft));
+            //print the speed for the last 20 turns
+            speedLeft = 188.5/(elapsedTimeLeft / 1000000.00);
+            printf("\nSpeed [left] (mm/s): %.4f", speedLeft);
+
+            //reset the count to 0
+            turnCountLeft = 0;
+            //reset elapsedtime to 0.0  
+
+            //reset speed to 0
+            speedLeft = 0.0;
+        }//for if loop
+    }//for GPIO 7
+
+    if(gpio==13){
+        //declared as static to retain its value 
+        static int turnCountRight = 0;
+        //Radius of the wheel: ~30mm
+        //Circumference of the wheel = 2* pi * r = ~ 188.49 ~ 188.5mm
+        //188.5 / 20 (Wheel encoder has 20 slots) = 9.425mm per turn 
+        distanceRight += 9.425;
+
+        turnCountRight += 1;
+
+
+        //For timer: Only start the turncount when encoder registers 1 count
+        if (turnCountRight == 1){
+            if (!isRunningRight){
+                // Start the stopwatch if it's not running
+                startTimeRight = time_us_64();
+                elapsedTimeRight = 0;
+                isRunningRight = true;
+                }//If stateemnt for checking state of timer
+        }//If statement for Overall Timer
+
+        //For when the turnCountLeft Reaches 20 to reset and stop the timer
+        else if (turnCountRight == 20){
+            if (isRunningRight)
+        {
+            // Stop the timer
+            elapsedTimeRight = time_us_64() - startTimeRight;
+            isRunningRight = false;
+        }//if statement
+        else
+        {
+            // Reset the Timer 
+            elapsedTimeRight = 0;
+        }//else statement
+        }//Else if for turnCountLeft ==20
+
+        //DEBUGGING ONLY
+        // printf("\n Right wheel time: %f", );
+        printf("\n Right wheel Turns: %d", turnCountRight);
+        printf("\n Right wheel Distance: %.2f", distanceRight);
+        //DEBUGGING ONLY
+
+        if (turnCountRight == 20){
+            //print up t 3 d.p
+            printf("\nRight wheel Distance (Millimeters): %.3f", distanceRight);
+
+            printf("\nElapsed time (Right): %lld", (elapsedTimeRight));
+            //print the speed for the last 20 turns
+            speedRight = 188.5/(elapsedTimeRight / 1000000.00);
+            printf("\nSpeed [Right] (mm/s): %.4f", speedRight);
+
+            //reset the count to 0
+            turnCountRight = 0;
+            //reset elapsedtime to 0.0   
+
+            //reset speed to 0
+            speedRight = 0.0;
+        }//for if loop
+    }//for GPIO 13
+}//for distanceTravelled
+//ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED
+
+
+
+//MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
+//Function to control the power of the motors.
+//Use together with variables in order to provide appropriate power.
+//logic 0 = no power (Low), logic 1 = power (high)
+void moveForward(int power, int duration){
+    //GPIO pins initialized directly, not as variables.
+    //motor 1 (LHS)
+    pwm_set_chan_level(pwm_gpio_to_slice_num(0), PWM_CHAN_A, power);
+    // Motor 2 (RHS)
+    pwm_set_chan_level(pwm_gpio_to_slice_num(6), PWM_CHAN_A, power); 
+    //Forward for LHS gearbox
+    gpio_put(pin1, 0);
+    gpio_put(pin2, 1);
+    //Forward for RHS gearbox
+    gpio_put(pin4, 0);
+    gpio_put(pin5, 1);
+
+    //Note: DO NOT USE SLEEP in the final version. Use VtaskDelay as sleep blocks all
+    //other tasks from executing
+
+    //sleep for designated time
+    vTaskDelay(duration);
+}//for moveForward Function
+
+void moveBackward(int power, int duration){
+    //motor 1 (LHS)
+    pwm_set_chan_level(pwm_gpio_to_slice_num(0), PWM_CHAN_A, power);
+    // Motor 2 (RHS)
+    pwm_set_chan_level(pwm_gpio_to_slice_num(6), PWM_CHAN_A, power); 
+    //Reverse for LHS gearbox
+    gpio_put(pin1, 1);
+    gpio_put(pin2, 0);
+    //Reverse for RHS gearbox
+    gpio_put(pin4, 1);
+    gpio_put(pin5, 0);
+    //Note: DO NOT USE SLEEP in the final version. Use VtaskDelay as sleep blocks all
+    //other tasks from executing
+
+    //sleep for designated time
+    vTaskDelay(duration);
+}//for moveBackward Function
+
+//Logic: "lock" the left wheel by setting the logic to "0"
+//Rotate the right wheel forward by setting the logic to pin4: 0, pin5: 1
+void turnLeft(int power, int duration){
+    //motor 1 (LHS)
+    pwm_set_chan_level(pwm_gpio_to_slice_num(0), PWM_CHAN_A, power);
+    // Motor 2 (RHS)
+    pwm_set_chan_level(pwm_gpio_to_slice_num(6), PWM_CHAN_A, power); 
+    //"lock" the left wheel in place
+    gpio_put(pin1, 0);
+    gpio_put(pin2, 0);
+    //Forward for RHS gearbox
+    gpio_put(pin4, 0);
+    gpio_put(pin5, 1);
+
+    //sleep for designated time
+    vTaskDelay(duration);
+}//for turnLeft Function
+
+void turnRight(int power, int duration){
+    //motor 1 (LHS)
+    pwm_set_chan_level(pwm_gpio_to_slice_num(0), PWM_CHAN_A, power);
+    // Motor 2 (RHS)
+    pwm_set_chan_level(pwm_gpio_to_slice_num(6), PWM_CHAN_A, power); 
+    //Rotate the left wheel forward
+    gpio_put(pin1, 0);
+    gpio_put(pin2, 1);
+    //"lock" the right wheel
+    gpio_put(pin4, 0);
+    gpio_put(pin5, 0);
+
+    //sleep for designated time
+    vTaskDelay(duration);
+}//for turnRight Function
+
+//i.e, turn on the spot anticlockwise
+void pivotSteerLeft(int power, int duration){
+    //motor 1 (LHS)
+    pwm_set_chan_level(pwm_gpio_to_slice_num(0), PWM_CHAN_A, power);
+    // Motor 2 (RHS)
+    pwm_set_chan_level(pwm_gpio_to_slice_num(6), PWM_CHAN_A, power); 
+    //Forward for RHS gearbox
+    gpio_put(pin4, 0);
+    gpio_put(pin5, 1);
+    //Reverse for LHS gearbox
+    gpio_put(pin1, 1);
+    gpio_put(pin2, 0);
+
+    //sleep for designated time
+    vTaskDelay(duration);
+}//for pivotSteerLeft function
+
+//i.e, turn on the spot clockwise
+void pivotSteerRight(int power, int duration){
+    //motor 1 (LHS)
+    pwm_set_chan_level(pwm_gpio_to_slice_num(0), PWM_CHAN_A, power);
+    // Motor 2 (RHS)
+    pwm_set_chan_level(pwm_gpio_to_slice_num(6), PWM_CHAN_A, power); 
+    //Rotate the left wheel forward
+    gpio_put(pin1, 0);
+    gpio_put(pin2, 1);
+    //Reverse for RHS gearbox
+    gpio_put(pin4, 1);
+    gpio_put(pin5, 0);
+    
+    //sleep for designated time
+    vTaskDelay(duration);
+}//for pivotSteerRight function
+//MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
+
+
+
+//FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS 
+
+
+
+//TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS
+//ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED
+void encoderInterrupt(void *pvParameters) {
+    // Unused (void) to avoid compiler warnings about an unused parameter
+    (void)pvParameters;
+    
+    // Your code here, possibly using parameters if required
+    gpio_set_irq_enabled_with_callback(7, GPIO_IRQ_EDGE_RISE, true, &distanceTravelled);
+    gpio_set_irq_enabled(13, GPIO_IRQ_EDGE_RISE, true);
+    while(1){
+        //run the check for interrupt forever
+    }//while
+}//encoderInterrupt
+//ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED
+
+
+
+//MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
+void MotorTest(__unused void *params){
+    // printf("Motor started");
+    while(1){
+        moveForward(fourtyFivePercentPower, 1000);
+        vTaskDelay(1000);
+        moveBackward(fourtyFivePercentPower, 1000);
+        vTaskDelay(1000);
+        turnLeft(fourtyFivePercentPower, 1000);
+        vTaskDelay(1000);
+        turnRight(fourtyFivePercentPower, 1000);
+        vTaskDelay(1000);
+        pivotSteerLeft(fourtyFivePercentPower, 1000);
+        vTaskDelay(1000);
+        pivotSteerRight(fourtyFivePercentPower, 1000);
+    vTaskDelay(1000);
+    }
+} 
+//MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
+
+
+
+//TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS
+
+
+
+//CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE 
+void vLaunch( void) {
+//note to self: ALL TASKS MUST BE INDEXED SEQUENTIALLY! 1,2,3 NOT 3,2,1 OR ERRORS
+TaskHandle_t encoder_;    
+xTaskCreate(encoderInterrupt, "Distance", configMINIMAL_STACK_SIZE, NULL, 1, &encoder_);
+
+TaskHandle_t motorTest_;    
+xTaskCreate(MotorTest, "Testmotors", configMINIMAL_STACK_SIZE, NULL, 2, &motorTest_);
+
+//CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE 
+
+#if NO_SYS && configUSE_CORE_AFFINITY && configNUM_CORES > 1
+    // we must bind the main task to one core (well at least while the init is called)
+    // (note we only do this in NO_SYS mode, because cyw43_arch_freertos
+    // takes care of it otherwise)
+    vTaskCoreAffinitySet(task, 1);
+#endif
+
+    /* Start the tasks and timer running. */
+    vTaskStartScheduler();
+}//vTask
+
+int main( void ){
+//enable USB output
+stdio_init_all();
+
+
+//ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED
+//initialize pins 8, 10 and 9, 11
+gpio_init(pin8);
+gpio_init(groundPin9);
+gpio_init(pin11);
+gpio_init(groundPin12);
+//Enable the pins as "OUT" pins
+gpio_set_dir(pin8, GPIO_OUT);
+gpio_set_dir(groundPin9, GPIO_OUT);
+gpio_set_dir(pin11, GPIO_OUT);
+gpio_set_dir(groundPin12, GPIO_OUT);
+
+//power to pin 8 and 10
+gpio_put(pin8, 1);
+gpio_put(pin11, 1);
+//cut power to pin 9 and 12
+gpio_put(groundPin9, 0);
+gpio_put(groundPin12, 0);
+
+repeating_timer_t timerLeft;
+repeating_timer_t timerRight;
+add_repeating_timer_ms(timerInterval, updateElapsedTimeLeft, NULL, &timerLeft);
+add_repeating_timer_ms(timerInterval, updateElapsedTimeRight, NULL, &timerRight);
+//ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED
+
+//MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
+// Tell GPIO 0 they are allocated to the PWM
+gpio_set_function(0, GPIO_FUNC_PWM);
+// Tell GPIO and 6 they are allocated to the PWM
+gpio_set_function(6, GPIO_FUNC_PWM);
+
+//Set up ground pins for power output (logical 1/0, H/L)
+gpio_init(pin1);
+gpio_init(pin2);
+gpio_init(pin4);
+gpio_init(pin5);
+gpio_set_dir(pin1, GPIO_OUT);
+gpio_set_dir(pin2, GPIO_OUT);
+gpio_set_dir(pin4, GPIO_OUT);
+gpio_set_dir(pin5, GPIO_OUT);
+
+//NOTE: POV IS LOOKING AT L298N WITH BLACK HEATSINK FACING YOU, BLUE BITS FACING AWAY
+// 0 is the motor for the LHS
+// 6 is the motor for RHS.
+uint slice_num_motor1 = pwm_gpio_to_slice_num(0);
+uint slice_num_motor2 = pwm_gpio_to_slice_num(6);
+
+// Divide both clocks by 100, so 125Mhz / 100 = 1.25Mhz (1,250,000 Hz)
+pwm_set_clkdiv(slice_num_motor1, 100);
+pwm_set_clkdiv(slice_num_motor2, 100);
+
+//Set the value at which the controller "wraps around" or becomes 0
+//the original wrap value, 3, results in a very short, high frequency PWM.
+//After changing to 12,500, it changes to a longer, lower frequency PWM.
+//Corresponds to a period of 10ms (12,500/1,250,000 = 0.01s or 10ms)
+pwm_set_wrap(slice_num_motor1, 12500);
+pwm_set_wrap(slice_num_motor2, 12500);
+
+// Enable both PWM slices 
+pwm_set_enabled(slice_num_motor1, true);
+pwm_set_enabled(slice_num_motor2, true);
+//MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
+
+/* Configure the hardware ready to run the demo. */
+    const char *rtos_name;
+#if ( portSUPPORT_SMP == 1 )
+    rtos_name = "FreeRTOS SMP";
+#else
+    rtos_name = "FreeRTOS";
+#endif
+
+#if ( portSUPPORT_SMP == 1 ) && ( configNUM_CORES == 2 )
+    printf("Starting %s on both cores:\n", rtos_name);
+    vLaunch();
+#elif ( RUN_FREERTOS_ON_CORE == 1 )
+    printf("Starting %s on core 1:\n", rtos_name);
+    multicore_launch_core1(vLaunch);
+    while (true);
+#else
+    printf("Starting %s on core 0:\n", rtos_name);
+    vLaunch();
+#endif
+    return 0;
+}//main
+
+// Timer interrupt handler to update the elapsed time
+bool updateElapsedTimeLeft(repeating_timer_t *rt)
+{
+    if (isRunningLeft)
+    {
+        // Calculate the elapsed time if the stopwatch is running
+        elapsedTimeLeft = time_us_64() - startTimeLeft;
+    }
+    return true;
+}//timer
+
+bool updateElapsedTimeRight(repeating_timer_t *rt)
+{
+    if (isRunningRight)
+    {
+        // Calculate the elapsed time if the stopwatch is running
+        elapsedTimeRight = time_us_64() - startTimeRight;
+    }
+    return true;
+}//timer
