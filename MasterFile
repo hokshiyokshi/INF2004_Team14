@@ -397,43 +397,47 @@ void encoderInterrupt(void *pvParameters) {
 
 
 //MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
-void MotorTest(__unused void *params){
-    // printf("Motor started");
-    while(1){
-        moveForward(fourtyFivePercentPower, 1000);
-        vTaskDelay(1000);
-        moveBackward(fourtyFivePercentPower, 1000);
-        vTaskDelay(1000);
-        turnLeft(fourtyFivePercentPower, 1000);
-        vTaskDelay(1000);
-        turnRight(fourtyFivePercentPower, 1000);
-        vTaskDelay(1000);
-        pivotSteerLeft(fourtyFivePercentPower, 1000);
-        vTaskDelay(1000);
-        pivotSteerRight(fourtyFivePercentPower, 1000);
-    vTaskDelay(1000);
-    }// while
-}//motorTest
+// void MotorTest(__unused void *params){
+//     // printf("Motor started");
+//     while(1){
+//         moveForward(fourtyFivePercentPower, 1);
+//         moveBackward(fourtyFivePercentPower, 1);
+//         turnLeft(fourtyFivePercentPower, 1);
+//         turnRight(fourtyFivePercentPower, 1);
+//         pivotSteerLeft(fourtyFivePercentPower, 1);
+//         pivotSteerRight(fourtyFivePercentPower, 1);
+//     }// while
+// }//motorTest
 //MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
 
 
 
-//LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
-void lineDetector(void *pvParameters){
-    // Unused (void) to avoid compiler warnings about an unused parameter
-    (void)pvParameters;
-    
+// //LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
+void lineDetector(void *pvParameters) {
+    // moveForward(halfPower, 100);
+    //run loop forever
 
+//CORRECT: State 0(LOW) = white
+//STATE 1(HIGH) = BLACK
+    //Left side  
+    while (1){
+        if(gpio_get(15) == 0 && gpio_get(17) == 0){
+            printf("state 0 W");
+            moveForward(halfPower,250);
+            }//if
+        else if (gpio_get(pin15)==1){
+            printf("state 1 B");
+            turnRight(halfPower,250);
+        }//else if
+        else if (gpio_get(pin17) ==1){
+            printf("state 1 B(17)");
+            turnLeft(halfPower,250);
+        }//else if
+    }//while
+}
+    // Suppress unused parameter compiler warning 
 
-
-    while(1){
-    //run loop forever  
-    printf("stufffffff");
-    vTaskDelay(5000);
-    }
-}//Linedetector 
-//LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
-
+// //LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
 
 
 //TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS
@@ -446,11 +450,13 @@ void vLaunch( void) {
 TaskHandle_t encoder_;    
 xTaskCreate(encoderInterrupt, "Distance", configMINIMAL_STACK_SIZE, NULL, 1, &encoder_);
 
-TaskHandle_t motorTest_;    
-xTaskCreate(MotorTest, "Testmotors", configMINIMAL_STACK_SIZE, NULL, 2, &motorTest_);
-
 TaskHandle_t lineDetector_;
-xTaskCreate(lineDetector, "Detect", configMINIMAL_STACK_SIZE, NULL, 3, &lineDetector_);
+xTaskCreate(lineDetector, "Detect", configMINIMAL_STACK_SIZE, NULL, 2, &lineDetector_);
+
+// TaskHandle_t motorTest_;    
+// xTaskCreate(MotorTest, "Testmotors", configMINIMAL_STACK_SIZE, NULL, 3, &motorTest_);
+
+
 
 //CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE 
 
@@ -538,6 +544,7 @@ pwm_set_enabled(slice_num_motor2, true);
 
 
 //LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
+//14 and 16 = power, 15 and 17 = input
 gpio_init(pin14);
 gpio_init(pin15);
 gpio_init(pin16);
@@ -550,6 +557,8 @@ gpio_put(pin16, 1);
 //set 15 and 17 to accept inputs
 gpio_set_dir(pin15, GPIO_IN);
 gpio_set_dir(pin17, GPIO_IN);
+// gpio_pull_up(pin15);
+// gpio_pull_up(pin17);
 //LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
 
 
