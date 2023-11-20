@@ -354,7 +354,23 @@ void pivotSteerRight(int power, int duration){
 
 
 //LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
+//left IR sensor
+void left_ir_sensor_callback(uint gpio, uint32_t events) {
+    // Check if the left IR sensor pin reads high (detects something).
+    if (gpio_get(pin15)) {
+        // Print a message if the sensor detects black.
+        printf("Left: Black detected.\n");
+    }
+}//for ir
 
+//right IR sensor
+void right_ir_sensor_callback(uint gpio, uint32_t events) {
+    // Check if the right IR sensor pin reads high (detects something).
+    if (gpio_get(pin17)) {
+        // Print a message if the sensor detects black.
+        printf("Right: Black detected.\n");
+    }
+}//for ir
 //LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
 
 
@@ -406,10 +422,13 @@ void MotorTest(__unused void *params){
 void lineDetector(void *pvParameters){
     // Unused (void) to avoid compiler warnings about an unused parameter
     (void)pvParameters;
+    
+
+
 
     while(1){
     //run loop forever  
-    printf("\nLINE DETECTOR\n");  
+    printf("stufffffff");
     vTaskDelay(5000);
     }
 }//Linedetector 
@@ -526,6 +545,11 @@ gpio_init(pin17);
 //power to pins 14 and 16 (15 and 17 are for feedback)
 gpio_set_dir(pin14, GPIO_OUT);
 gpio_set_dir(pin16, GPIO_OUT);
+gpio_put(pin14, 1);
+gpio_put(pin16, 1);
+//set 15 and 17 to accept inputs
+gpio_set_dir(pin15, GPIO_IN);
+gpio_set_dir(pin17, GPIO_IN);
 //LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
 
 
