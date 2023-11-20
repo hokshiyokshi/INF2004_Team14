@@ -25,7 +25,7 @@
 #define RUN_FREERTOS_ON_CORE 0
 #endif
 //Macro to define task priority
-#define TEST_TASK_PRIORITY              ( tskIDLE_PRIORITY + 1UL )
+#define TEST_TASK_PRIORITY				( tskIDLE_PRIORITY + 1UL )
 
 //DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS
 
@@ -75,6 +75,7 @@ float speedRight = 0.0;
 //ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED
 
 
+
 //MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
 //Pass the integers to the motors as a variable instead of a value
 //Removes guesswork for powering up of motors.
@@ -94,6 +95,7 @@ int pin5 = 5;
 //DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS
 
 
+
 //LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
 //Left side (Will use board's ground pin)
 //Power pin
@@ -107,6 +109,7 @@ int pin16 = 16;
 //feedback pin
 int pin17 = 17; 
 //LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
+
 
 
 //FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS 
@@ -183,6 +186,7 @@ void distanceTravelled(uint gpio, uint32_t events) {
 
         turnCountRight += 1;
 
+
         //For timer: Only start the turncount when encoder registers 1 count
         if (turnCountRight == 1){
             if (!isRunningRight){
@@ -233,6 +237,7 @@ void distanceTravelled(uint gpio, uint32_t events) {
     }//for GPIO 13
 }//for distanceTravelled
 //ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED
+
 
 
 //MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
@@ -347,7 +352,15 @@ void pivotSteerRight(int power, int duration){
 //MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
 
 
+
+//LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
+
+//LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
+
+
+
 //FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS 
+
 
 
 //TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS
@@ -366,6 +379,7 @@ void encoderInterrupt(void *pvParameters) {
 //ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED
 
 
+
 //MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
 void MotorTest(__unused void *params){
     // printf("Motor started");
@@ -382,12 +396,29 @@ void MotorTest(__unused void *params){
         vTaskDelay(1000);
         pivotSteerRight(fourtyFivePercentPower, 1000);
     vTaskDelay(1000);
-    }
-} 
+    }// while
+}//motorTest
 //MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
 
 
+
+//LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
+void lineDetector(void *pvParameters){
+    // Unused (void) to avoid compiler warnings about an unused parameter
+    (void)pvParameters;
+
+    while(1){
+    //run loop forever  
+    printf("\nLINE DETECTOR\n");  
+    vTaskDelay(5000);
+    }
+}//Linedetector 
+//LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
+
+
+
 //TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS
+
 
 
 //CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE 
@@ -398,6 +429,9 @@ xTaskCreate(encoderInterrupt, "Distance", configMINIMAL_STACK_SIZE, NULL, 1, &en
 
 TaskHandle_t motorTest_;    
 xTaskCreate(MotorTest, "Testmotors", configMINIMAL_STACK_SIZE, NULL, 2, &motorTest_);
+
+TaskHandle_t lineDetector_;
+xTaskCreate(lineDetector, "Detect", configMINIMAL_STACK_SIZE, NULL, 3, &lineDetector_);
 
 //CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE 
 
@@ -415,6 +449,7 @@ xTaskCreate(MotorTest, "Testmotors", configMINIMAL_STACK_SIZE, NULL, 2, &motorTe
 int main( void ){
 //enable USB output
 stdio_init_all();
+
 
 //ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED
 //initialize pins 8, 10 and 9, 11
@@ -440,6 +475,8 @@ repeating_timer_t timerRight;
 add_repeating_timer_ms(timerInterval, updateElapsedTimeLeft, NULL, &timerLeft);
 add_repeating_timer_ms(timerInterval, updateElapsedTimeRight, NULL, &timerRight);
 //ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED
+
+
 
 //MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
 // Tell GPIO 0 they are allocated to the PWM
@@ -479,6 +516,8 @@ pwm_set_enabled(slice_num_motor1, true);
 pwm_set_enabled(slice_num_motor2, true);
 //MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
 
+
+
 //LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
 gpio_init(pin14);
 gpio_init(pin15);
@@ -488,6 +527,9 @@ gpio_init(pin17);
 gpio_set_dir(pin14, GPIO_OUT);
 gpio_set_dir(pin16, GPIO_OUT);
 //LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
+
+
+
 
 /* Configure the hardware ready to run the demo. */
     const char *rtos_name;
@@ -531,5 +573,3 @@ bool updateElapsedTimeRight(repeating_timer_t *rt)
     }
     return true;
 }//timer
-
-
