@@ -1,5 +1,6 @@
 //standard include statements
 #include <stdio.h>
+#include <time.h>
 
 #include "pico/cyw43_arch.h"
 #include "pico/stdlib.h"
@@ -15,6 +16,7 @@
 #include "hardware/adc.h"
 #include "hardware/pwm.h"
 #include "hardware/irq.h"
+#include "hardware/timer.h"
 
 #define mbaTASK_MESSAGE_BUFFER_SIZE       ( 60 )
 
@@ -25,7 +27,7 @@
 #define RUN_FREERTOS_ON_CORE 0
 #endif
 //Macro to define task priority
-#define TEST_TASK_PRIORITY				( tskIDLE_PRIORITY + 1UL )
+#define TEST_TASK_PRIORITY              ( tskIDLE_PRIORITY + 1UL )
 
 //DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS
 
@@ -75,7 +77,6 @@ float speedRight = 0.0;
 //ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED
 
 
-
 //MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
 //Pass the integers to the motors as a variable instead of a value
 //Removes guesswork for powering up of motors.
@@ -94,8 +95,6 @@ int pin5 = 5;
 //MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
 //DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS
 
-
-
 //LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
 //Left side (Will use board's ground pin)
 //Power pin
@@ -110,6 +109,24 @@ int pin16 = 16;
 int pin17 = 17; 
 //LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
 
+//POWER FOR ULTRASONIC + MAGNOMETER + BARCODE POWER FOR ULTRASONIC + MAGNOMETER + BARCODE
+//pin 18's power to be shared between 3 components
+int pin18Power = 18;
+//pin 19 to be set as ground for 3 components
+int pin19Ground = 19;
+//POWER FOR ULTRASONIC + MAGNOMETER + BARCODE POWER FOR ULTRASONIC + MAGNOMETER + BARCODE
+
+//ULTRASONIC ULTRASONIC ULTRASONIC ULTRASONIC ULTRASONIC ULTRASONIC ULTRASONIC ULTRASONIC
+// pin20 to be the trigger
+int pin20Trig = 20;
+//pin21 to be the echo
+int pin21Echo = 21;
+//Check if the measurement is triggered
+static bool measurement_triggered = false;
+//ULTRASONIC ULTRASONIC ULTRASONIC ULTRASONIC ULTRASONIC ULTRASONIC ULTRASONIC ULTRASONIC
+
+
+//DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS DECLARATIONS
 
 
 //FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS 
@@ -186,7 +203,6 @@ void distanceTravelled(uint gpio, uint32_t events) {
 
         turnCountRight += 1;
 
-
         //For timer: Only start the turncount when encoder registers 1 count
         if (turnCountRight == 1){
             if (!isRunningRight){
@@ -237,7 +253,6 @@ void distanceTravelled(uint gpio, uint32_t events) {
     }//for GPIO 13
 }//for distanceTravelled
 //ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED
-
 
 
 //MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
@@ -352,31 +367,34 @@ void pivotSteerRight(int power, int duration){
 //MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
 
 
-
 //LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
 //left IR sensor
-void left_ir_sensor_callback(uint gpio, uint32_t events) {
-    // Check if the left IR sensor pin reads high (detects something).
-    if (gpio_get(pin15)) {
-        // Print a message if the sensor detects black.
-        printf("Left: Black detected.\n");
-    }
-}//for ir
+// void left_ir_sensor_callback(uint gpio, uint32_t events) {
+//     // Check if the left IR sensor pin reads high (detects something).
+//     if (gpio_get(pin15)) {
+//         // Print a message if the sensor detects black.
+//         printf("Left: Black detected.\n");
+//     }
+// }//for ir
 
-//right IR sensor
-void right_ir_sensor_callback(uint gpio, uint32_t events) {
-    // Check if the right IR sensor pin reads high (detects something).
-    if (gpio_get(pin17)) {
-        // Print a message if the sensor detects black.
-        printf("Right: Black detected.\n");
-    }
-}//for ir
+// //right IR sensor
+// void right_ir_sensor_callback(uint gpio, uint32_t events) {
+//     // Check if the right IR sensor pin reads high (detects something).
+//     if (gpio_get(pin17)) {
+//         // Print a message if the sensor detects black.
+//         printf("Right: Black detected.\n");
+//     }
+// }//for ir
 //LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
 
 
+//ULTRASONIC SENSOR ULTRASONIC SENSOR ULTRASONIC SENSOR ULTRASONIC SENSOR ULTRASONIC SENSOR
+void timer_callback(struct repeating_timer *t, void *data) {
+    measurement_triggered = true;
+}
+// ULTRASONIC SENSOR ULTRASONIC SENSOR ULTRASONIC SENSOR ULTRASONIC SENSOR ULTRASONIC SENSOR
 
 //FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS 
-
 
 
 //TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS
@@ -395,11 +413,9 @@ void encoderInterrupt(void *pvParameters) {
 //ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED
 
 
-
 //MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
 //Empty. Motor will be called by other functions
 //MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
-
 
 
 // //LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
@@ -412,11 +428,11 @@ void lineDetector(void *pvParameters) {
     //Left side  
     while (1){
         if(gpio_get(15) == 0 && gpio_get(17) == 0){
-            printf("state 0 W");
+            printf("state 0 W(17 + 17)");
             moveForward(halfPower,250);
             }//if
         else if (gpio_get(pin15)==1){
-            printf("state 1 B");
+            printf("state 1 B(15)");
             turnRight(halfPower,250);
         }//else if
         else if (gpio_get(pin17) ==1){
@@ -430,8 +446,61 @@ void lineDetector(void *pvParameters) {
 // //LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
 
 
-//TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS
+// ULTRASONIC SENSOR ULTRASONIC SENSOR ULTRASONIC SENSOR ULTRASONIC SENSOR ULTRASONIC SENSOR
+// void ultraSonicSensor(void *pvParameters) {
+// //&timer for specific instance 
+//     while(1){
+//         //
+//         gpio_put(20, 1); // Set the trigger pin HIGH
+//         vTaskDelay(10);    // Wait for 10 microseconds (adjust as per sensor requirements)
+//         gpio_put(20, 0); // Set the trigger pin LOW to initiate the sensor measurement
 
+//         if(gpio_get(pin21Echo)==1){
+//             printf("GP21 1 HIGH");
+//         }
+//         else if (gpio_get(pin21Echo)==0){
+//             printf("GP21 0 LOW");
+//         }
+//     }//while loop
+// }//ultrasonic Sensor
+void ultraSonicSensor(void *pvParameters) {
+            
+    while (1) {
+        measurement_triggered = true;
+        if (measurement_triggered) {
+            // Send a trigger pulse
+            gpio_put(pin20Trig, 1);
+            sleep_us(10);
+            gpio_put(pin20Trig, 0);
+
+            // Wait for the echo pulse to start
+            while (gpio_get(pin21Echo) == 0){
+            vTaskDelay(10);
+            } 
+
+            // Measure the pulse duration
+            absolute_time_t start_time = get_absolute_time();
+            while (gpio_get(pin21Echo) == 1){ 
+            absolute_time_t end_time = get_absolute_time();
+
+            // Calculate distance in centimeters
+            uint32_t pulse_duration = absolute_time_diff_us(start_time, end_time);
+            float distance_cm = (pulse_duration * 0.0343) / 2;
+
+            printf("Distance: %.2f cm\n", distance_cm);
+            vTaskDelay(1);
+            }
+            // Reset the trigger flag
+        }
+        measurement_triggered = false;
+    }
+            
+}
+
+
+// ULTRASONIC SENSOR ULTRASONIC SENSOR ULTRASONIC SENSOR ULTRASONIC SENSOR ULTRASONIC SENSOR
+
+//TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS
 
 
 //CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE 
@@ -443,7 +512,8 @@ xTaskCreate(encoderInterrupt, "Distance", configMINIMAL_STACK_SIZE, NULL, 1, &en
 TaskHandle_t lineDetector_;
 xTaskCreate(lineDetector, "Detect", configMINIMAL_STACK_SIZE, NULL, 2, &lineDetector_);
 
-
+TaskHandle_t ultrasonic_;
+xTaskCreate(ultraSonicSensor, "Ultrasonic", configMINIMAL_STACK_SIZE, NULL, 4, &ultrasonic_);
 
 //CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE 
 
@@ -461,7 +531,6 @@ xTaskCreate(lineDetector, "Detect", configMINIMAL_STACK_SIZE, NULL, 2, &lineDete
 int main( void ){
 //enable USB output
 stdio_init_all();
-
 
 //ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED
 //initialize pins 8, 10 and 9, 11
@@ -487,7 +556,6 @@ repeating_timer_t timerRight;
 add_repeating_timer_ms(timerInterval, updateElapsedTimeLeft, NULL, &timerLeft);
 add_repeating_timer_ms(timerInterval, updateElapsedTimeRight, NULL, &timerRight);
 //ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED
-
 
 
 //MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
@@ -529,7 +597,6 @@ pwm_set_enabled(slice_num_motor2, true);
 //MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
 
 
-
 //LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
 //14 and 16 = power, 15 and 17 = input
 gpio_init(pin14);
@@ -548,8 +615,26 @@ gpio_set_dir(pin17, GPIO_IN);
 // gpio_pull_up(pin17);
 //LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
 
+//SHARED POWER/GOUND FOR ULTRASONIC + MAGNOMETER + BARCODE
+//initialize the pins
+gpio_init(pin18Power);
+gpio_init(pin19Ground);
+//set 18 to power, 19 to ground.
+gpio_put(pin18Power, 1);
+gpio_put(pin19Ground, 0);
+//SHARED POWER/GOUND FOR ULTRASONIC + MAGNOMETER + BARCODE
 
+// ULTRASONIC SENSOR ULTRASONIC SENSOR ULTRASONIC SENSOR ULTRASONIC SENSOR ULTRASONIC SENSOR
+gpio_init(pin20Trig);
+gpio_init(pin21Echo);
+//set pin20 to send, pin21 to receive
+gpio_set_dir(pin20Trig, GPIO_OUT);
+gpio_set_dir(pin21Echo, GPIO_IN);
 
+//1000 = 1s(1000ms), timer_callback calls the function, NULL as no data passed, 
+struct repeating_timer timer;
+add_repeating_timer_ms(1000, timer_callback, NULL, &timer);
+// ULTRASONIC SENSOR ULTRASONIC SENSOR ULTRASONIC SENSOR ULTRASONIC SENSOR ULTRASONIC SENSOR
 
 /* Configure the hardware ready to run the demo. */
     const char *rtos_name;
