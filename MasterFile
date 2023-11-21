@@ -397,17 +397,7 @@ void encoderInterrupt(void *pvParameters) {
 
 
 //MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
-// void MotorTest(__unused void *params){
-//     // printf("Motor started");
-//     while(1){
-//         moveForward(fourtyFivePercentPower, 1);
-//         moveBackward(fourtyFivePercentPower, 1);
-//         turnLeft(fourtyFivePercentPower, 1);
-//         turnRight(fourtyFivePercentPower, 1);
-//         pivotSteerLeft(fourtyFivePercentPower, 1);
-//         pivotSteerRight(fourtyFivePercentPower, 1);
-//     }// while
-// }//motorTest
+//Empty. Motor will be called by other functions
 //MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED MOTOR RELATED
 
 
@@ -452,9 +442,6 @@ xTaskCreate(encoderInterrupt, "Distance", configMINIMAL_STACK_SIZE, NULL, 1, &en
 
 TaskHandle_t lineDetector_;
 xTaskCreate(lineDetector, "Detect", configMINIMAL_STACK_SIZE, NULL, 2, &lineDetector_);
-
-// TaskHandle_t motorTest_;    
-// xTaskCreate(MotorTest, "Testmotors", configMINIMAL_STACK_SIZE, NULL, 3, &motorTest_);
 
 
 
