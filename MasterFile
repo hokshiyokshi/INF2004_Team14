@@ -295,12 +295,11 @@ void moveForward(int power, int duration){
     pwm_set_chan_level(pwm_gpio_to_slice_num(0), PWM_CHAN_A, power);
     // Motor 2 (RHS)
     pwm_set_chan_level(pwm_gpio_to_slice_num(6), PWM_CHAN_A, power); 
-    //Forward for LHS gearbox
-    gpio_put(pin1, 0);
-    gpio_put(pin2, 1);
+    gpio_put(pin1, 1);
+    gpio_put(pin2, 0);
     //Forward for RHS gearbox
-    gpio_put(pin4, 0);
-    gpio_put(pin5, 1);
+    gpio_put(pin4, 1);
+    gpio_put(pin5, 0);
 
     //Note: DO NOT USE SLEEP in the final version. Use VtaskDelay as sleep blocks all
     //other tasks from executing
@@ -315,11 +314,11 @@ void moveBackward(int power, int duration){
     // Motor 2 (RHS)
     pwm_set_chan_level(pwm_gpio_to_slice_num(6), PWM_CHAN_A, power); 
     //Reverse for LHS gearbox
-    gpio_put(pin1, 1);
-    gpio_put(pin2, 0);
+    gpio_put(pin1, 0);
+    gpio_put(pin2, 1);
     //Reverse for RHS gearbox
-    gpio_put(pin4, 1);
-    gpio_put(pin5, 0);
+    gpio_put(pin4, 0);
+    gpio_put(pin5, 1);
     //Note: DO NOT USE SLEEP in the final version. Use VtaskDelay as sleep blocks all
     //other tasks from executing
 
@@ -335,11 +334,11 @@ void turnLeft(int power, int duration){
     // Motor 2 (RHS)
     pwm_set_chan_level(pwm_gpio_to_slice_num(6), PWM_CHAN_A, power); 
     //"lock" the left wheel in place
-    gpio_put(pin1, 0);
+    gpio_put(pin1, 1);
     gpio_put(pin2, 0);
     //Forward for RHS gearbox
     gpio_put(pin4, 0);
-    gpio_put(pin5, 1);
+    gpio_put(pin5, 0);
 
     //sleep for designated time
     vTaskDelay(duration);
@@ -352,9 +351,9 @@ void turnRight(int power, int duration){
     pwm_set_chan_level(pwm_gpio_to_slice_num(6), PWM_CHAN_A, power); 
     //Rotate the left wheel forward
     gpio_put(pin1, 0);
-    gpio_put(pin2, 1);
+    gpio_put(pin2, 0);
     //"lock" the right wheel
-    gpio_put(pin4, 0);
+    gpio_put(pin4, 1);
     gpio_put(pin5, 0);
 
     //sleep for designated time
