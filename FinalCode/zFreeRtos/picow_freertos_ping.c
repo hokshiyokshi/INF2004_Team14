@@ -50,53 +50,17 @@
 //Macro to define task priority
 #define TEST_TASK_PRIORITY				( tskIDLE_PRIORITY + 1UL )
 
-//declare task
-void vHttpServerTask(void *pvParameters) {
-    // // WIFI Credentials - take care if pushing to github!
-
-    // // Connect to Wi-Fi
-    // cyw43_arch_init();
-    // cyw43_arch_enable_sta_mode();
-
-    // while(cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK, 30000) != 0) {
-    //     printf("Attempting to connect...\n");
-    // }
-
-    // printf("Connected!\n");
-
-    // // Print network information
-    // //ip4_addr_t ipaddr, netmask, gw;
-    // struct netif *netif = netif_default;
-    // if (netif) {
-    //     printf("IP Address: %s\n", ip4addr_ntoa(&netif->ip_addr));
-    //     printf("Netmask: %s\n", ip4addr_ntoa(&netif->netmask));
-    //     printf("Gateway: %s\n", ip4addr_ntoa(&netif->gw));
-    // } else {
-    //     printf("Network interface not found\n");
-    // }
-
-    // // Initialize web server
-
-
-
-    // while (1) {
-    //     // Add any additional HTTP server-related functionality or handling here
-    //     vTaskDelay(pdMS_TO_TICKS(1000));  // Delay for 1 second
-
-    // }
-}
-//FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS FUNCTIONS 
-
-
 //TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS
 //ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED
 void encoderInterrupt(void *pvParameters) {
     // Unused (void) to avoid compiler warnings about an unused parameter
     (void)pvParameters;
     
-    // Your code here, possibly using parameters if required
+    // Interrupt code, do something every time an edge rise is detected
     gpio_set_irq_enabled_with_callback(7, GPIO_IRQ_EDGE_RISE, true, &distanceTravelled);
     gpio_set_irq_enabled(13, GPIO_IRQ_EDGE_RISE, true);
+
+    //While loop to wait for interrupts, vTaskDelay of 10 to yield control to tasks
     while(1){
         //run the check for interrupt forever
         //yield to other tasks
@@ -142,12 +106,6 @@ void lineDetector(void *pvParameters) {
         }
     }//while
 }
-    // Suppress unused parameter compiler warning 
-
-// //LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
-
-
-//TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS TASKS
 
 
 
@@ -166,8 +124,8 @@ TaskHandle_t encoder_;
 xTaskCreate(encoderInterrupt, "Distance", configMINIMAL_STACK_SIZE, NULL, 4, &encoder_);
 TaskHandle_t Barcode__;
 xTaskCreate(vBarcodeTask, "Detect", configMINIMAL_STACK_SIZE, NULL, 5, &Barcode__);
-    //     TaskHandle_t httpServerTask;
-    // xTaskCreate(vHttpServerTask, "HTTP Server Task", configMINIMAL_STACK_SIZE, NULL, 6, &httpServerTask);
+TaskHandle_t httpServerTask;
+xTaskCreate(vHttpServerTask, "HTTP Server Task", configMINIMAL_STACK_SIZE, NULL, 6, &httpServerTask);
 
 
 
