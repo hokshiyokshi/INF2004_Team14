@@ -4,10 +4,13 @@
 
 //Pass the integers to the motors as a variable instead of a value
 //Removes guesswork for powering up of motors.
+//based on the lab exercise, power displayed proportional to 12,500 (i.e, n/12500) * 100%
+//25, 40, 45, 50, and 100% power respectively. Based on testing, only 45% and above
+//will reliably start up.
 int twentyFivePercentPower = 3125;
 int fourtyPercent = 5300;
 int fourtyFivePercentPower = 5625;
-int halfPower = 6250;   // changed from 6250
+int halfPower = 6250;  
 int fullPower = 12500; 
 
 //Define pins to enable/disable power output, int corresponds to GPIO
@@ -33,7 +36,6 @@ int pin15 = 15;
 int pin16 = 16;
 //feedback pin
 int pin17 = 17; 
-//LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
 
 void stoppu(int power, int duration){
     //GPIO pins initialized directly, not as variables.
@@ -69,10 +71,8 @@ void moveForward(int power, int duration){
     gpio_put(pin4, 0);
     gpio_put(pin5, 1);
 
-    //Note: DO NOT USE SLEEP in the final version. Use VtaskDelay as sleep blocks all
-    //other tasks from executing
-
-    //sleep for designated time
+    //Used VtaskDelay as sleep blocks all other tasks from executing
+    //"sleep" for designated time
     vTaskDelay(duration);
 }//for moveForward Function
 
@@ -88,10 +88,8 @@ void moveBackward(int power, int duration){
     //Reverse for RHS gearbox
     gpio_put(pin4, 1);
     gpio_put(pin5, 0);
-    //Note: DO NOT USE SLEEP in the final version. Use VtaskDelay as sleep blocks all
-    //other tasks from executing
 
-    //sleep for designated time
+    //"sleep" for designated time
     vTaskDelay(duration);
 }//for moveBackward Function
 
@@ -110,7 +108,7 @@ void turnLeft(int power, int duration){
     gpio_put(pin4, 0);
     gpio_put(pin5, 0);
 
-    //sleep for designated time
+    //"sleep" for designated time
     vTaskDelay(duration);
 }//for turnLeft Function
 
@@ -127,7 +125,7 @@ void turnRight(int power, int duration){
     gpio_put(pin4, 0);
     gpio_put(pin5, 1);
 
-    //sleep for designated time
+    //"sleep" for designated time
     vTaskDelay(duration);
 }//for turnRight Function
 
@@ -144,7 +142,7 @@ void pivotSteerLeft(int power, int duration){
     gpio_put(pin1, 1);
     gpio_put(pin2, 0);
 
-    //sleep for designated time
+    //"sleep" for designated time
     vTaskDelay(duration);
 }//for pivotSteerLeft function
 
@@ -161,11 +159,6 @@ void pivotSteerRight(int power, int duration){
     gpio_put(pin4, 1);
     gpio_put(pin5, 0);
     
-    //sleep for designated time
+    //"sleep" for designated time
     vTaskDelay(duration);
 }//for pivotSteerRight function
-
-void move(){
-    printf("Movement");
-    vTaskDelay(1000);
-}
