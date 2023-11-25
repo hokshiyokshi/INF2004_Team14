@@ -167,9 +167,9 @@ void pivotSteerRight(int power, int duration){
 void lineDetector(void *pvParameters) {
 
 //CORRECT: State 0(LOW) = white
-//STATE 1(HIGH) = BLACK
-    // printf("connect status: no ip \n connect status: link up\n Connected!\n IP Address: 172.20.10.13 \n Netmask: 255.255.255.240 \n Gateway: 172.20.10.1\n");  
+//STATE 1(HIGH) = BLACK  
     while (1){
+        //if the ultrasonic detector detects something within 30cm
         if(global_distance_cm<30){
             printf("GLOBAL DIST <30\n");
             printf("%f\n", global_distance_cm);
@@ -177,26 +177,29 @@ void lineDetector(void *pvParameters) {
             moveBackward(fourtyPercent, 250);
             continue;
         }
+        //Debugging
         else if(global_distance_cm>30){
             printf("GLOBAL DIST >30\n");
             printf("%f\n", global_distance_cm);
         }
 
+        //If white is detected, move forward at 45% power
         if(gpio_get(15) == 0 && gpio_get(17) == 0){
             printf("state 0 W");
             moveForward(fourtyPercent,250);
             }//if
+        
+        //If black is detected on the left side, turn right to avoid
         else if (gpio_get(pin15)==1){
             printf("state 1 B");
-        turnRight(fourtyPercent, 250);
+            turnRight(fourtyPercent, 250);
         }//else if
+
+        //If black is detected on the right side, turn right to avoid
         else if (gpio_get(pin17) ==1){
             printf("state 1 B(17)");
             turnLeft(fourtyPercent, 250);
+        
         }//else if
-                else if (gpio_get(15) == 1 && gpio_get(17) == 1){
-            moveBackward(fourtyPercent,1000);
-            pivotSteerLeft(fourtyPercent,750);
-        }
     }//while
-}
+}//function brack
