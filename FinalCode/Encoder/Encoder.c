@@ -1,11 +1,10 @@
+//standard include statements
 #include <stdio.h>
 #include <stdint.h>
 #include <time.h>
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
 
-
-//ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED
 //Timer interval, timer will tick every 10^-5 seconds
 #define timerInterval 10    
 
@@ -16,49 +15,42 @@ volatile bool isRunningLeft = false;
 volatile uint64_t startTimeLeft = 0;
 volatile uint64_t elapsedTimeLeft = 0;
 
+//Same concept for the right side
 volatile bool isRunningRight = false;
 volatile uint64_t startTimeRight = 0;
 volatile uint64_t elapsedTimeRight = 0;
 
-
-// volatile float global_distance_cm = 0.0;
-
-
-// Function to start or stop the timer when the encoder = 1 or = 20
+//Timer function to start or stop the timer when the encoder = 1 or = 20
 void toggleTimeLeft(uint gpio, uint32_t events);
 void toggleTimeRight(uint gpio, uint32_t events);
 
-// Timer interrupt handler to update the elapsed time
+//Timer interrupt handler to update the elapsed time
 bool updateElapsedTimeLeft(repeating_timer_t *rt);
 bool updateElapsedTimeRight(repeating_timer_t *rt);
-//TIMER PORTION
 
-//Remember to declare during integration
-//GPIO pin 8 and 10 = set as power pin
+//Note: Initialization in the main file, variables here declared only
+//GPIO pin 8 and 10 = to be initialized as power pin
 int pin8 = 8;
 int pin11 = 11;
-//GPIO pin 9 and 12 = set as Ground pin
+//GPIO pin 9 and 12 = to be initialized as Ground pin
 int groundPin9 = 9;
 int groundPin12 = 12;
 
-//testing
-//pin 7 is the left
+//pin 7 bound to left encoder
 uint pin7 = 7;
-//pin 13 is the right
+//pin 13 bound to right encoder
 uint pin13 = 13;
 
+//distances for left and right encoders
 float distanceLeft = 0.0;
 float distanceRight = 0.0;
 
+//speed variable to aid in calculation
 float speedLeft = 0.0;
 float speedRight = 0.0;
-//ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED
 
-
+//Function to trigger if interrupt. Checks if the pin triggered is 7 or 13 for Left/Right.
 void distanceTravelled(uint gpio, uint32_t events) {
-    while(1){
-        printf("test");
-    }//while
     if(gpio==7){
 
         //declared as static to retain its value 
@@ -68,6 +60,7 @@ void distanceTravelled(uint gpio, uint32_t events) {
         //188.5 / 20 (Wheel encoder has 20 slots) = 9.425mm per turn 
         distanceLeft += 9.425;
 
+        //turncount for left value, will reset if ==20
         turnCountLeft += 1;
 
         //For timer: Only start the turncount when encoder registers 1 count
@@ -127,6 +120,7 @@ void distanceTravelled(uint gpio, uint32_t events) {
         //188.5 / 20 (Wheel encoder has 20 slots) = 9.425mm per turn 
         distanceRight += 9.425;
 
+        //turncount for right, to reset if ==20
         turnCountRight += 1;
 
 
@@ -179,9 +173,9 @@ void distanceTravelled(uint gpio, uint32_t events) {
         }//for if loop
     }//for GPIO 13
 }//for distanceTravelled
-//ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED
 
-// Timer interrupt handler to update the elapsed time
+
+// Timer interrupt handler to update the elapsed time (Left)
 bool updateElapsedTimeLeft(repeating_timer_t *rt)
 {
     if (isRunningLeft)
@@ -192,6 +186,7 @@ bool updateElapsedTimeLeft(repeating_timer_t *rt)
     return true;
 }//timer
 
+// Timer interrupt handler to update the elapsed time (Left)
 bool updateElapsedTimeRight(repeating_timer_t *rt)
 {
     if (isRunningRight)
@@ -201,4 +196,3 @@ bool updateElapsedTimeRight(repeating_timer_t *rt)
     }
     return true;
 }//timer
-
