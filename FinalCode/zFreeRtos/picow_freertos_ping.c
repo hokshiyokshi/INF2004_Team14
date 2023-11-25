@@ -70,48 +70,13 @@ void encoderInterrupt(void *pvParameters) {
 //ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED ENCODER RELATED
 
 // //LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR LINE DETECTOR
-void lineDetector(void *pvParameters) {
-
-//CORRECT: State 0(LOW) = white
-//STATE 1(HIGH) = BLACK
-    // printf("connect status: no ip \n connect status: link up\n Connected!\n IP Address: 172.20.10.13 \n Netmask: 255.255.255.240 \n Gateway: 172.20.10.1\n");  
-    while (1){
-        if(global_distance_cm<30){
-            printf("GLOBAL DIST <30\n");
-            printf("%f\n", global_distance_cm);
-            stoppu(0,1500);
-            moveBackward(fourtyPercent, 250);
-            continue;
-        }
-        else if(global_distance_cm>30){
-            printf("GLOBAL DIST >30\n");
-            printf("%f\n", global_distance_cm);
-        }
-
-        if(gpio_get(15) == 0 && gpio_get(17) == 0){
-            printf("state 0 W");
-            moveForward(fourtyPercent,250);
-            }//if
-        else if (gpio_get(pin15)==1){
-            printf("state 1 B");
-        turnRight(fourtyPercent, 250);
-        }//else if
-        else if (gpio_get(pin17) ==1){
-            printf("state 1 B(17)");
-            turnLeft(fourtyPercent, 250);
-        }//else if
-                else if (gpio_get(15) == 1 && gpio_get(17) == 1){
-            moveBackward(fourtyPercent,1000);
-            pivotSteerLeft(fourtyPercent,750);
-        }
-    }//while
-}
-
 
 
 //CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE TASKS CREATE 
 void vLaunch( void) {
 //note to self: ALL TASKS MUST BE INDEXED SEQUENTIALLY! 1,2,3 NOT 3,2,1 OR ERRORS
+//tasks in order: 1. Detect lines and move, 2. ultrasonic sensor, 3.Magnometer,
+//4. Encoder, 5. Barcode, 6. Server
 
 TaskHandle_t lineDetector_;
 xTaskCreate(lineDetector, "Detect", configMINIMAL_STACK_SIZE, NULL, 1, &lineDetector_);
